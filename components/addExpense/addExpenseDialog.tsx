@@ -9,10 +9,18 @@ import {
     DialogFooter,
     DialogTrigger
 } from "@/components/ui/dialog"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { EXPENSE_CATEGORIES } from "@/lib/constants/categories"
 
 export default function AddExpenseDialog() {
 
@@ -39,7 +47,7 @@ export default function AddExpenseDialog() {
         <Dialog>
 
             <DialogTrigger asChild>
-                <Button className="bg-black text-white">
+                <Button className="p-5">
                     + Add Expense
                 </Button>
             </DialogTrigger>
@@ -68,11 +76,25 @@ export default function AddExpenseDialog() {
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Category *</label>
-                        <Input
-                            placeholder="Select category"
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                        />
+
+                        <Select onValueChange={(value) => setCategory(value)}>
+
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+
+                            <SelectContent>
+
+                                {EXPENSE_CATEGORIES.map((cat) => (
+                                    <SelectItem key={cat} value={cat}>
+                                        {cat}
+                                    </SelectItem>
+                                ))}
+
+                            </SelectContent>
+
+                        </Select>
+
                     </div>
 
                     {/* Date */}
