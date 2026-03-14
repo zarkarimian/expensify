@@ -3,9 +3,14 @@
 import AddExpenseDialog from '@/components/addExpense/addExpenseDialog'
 import ExpenseSearch from '@/components/expenses/expesnse-search'
 import React, { useState } from 'react'
+import ExpenseTable from '@/components/expenses/expense-table'
+import ExpenseRow from '@/components/expenses/expense-row'
+import ExpenseFilter from '@/components/expenses/expesne-filter'
 
 const ExpensesPage = () => {
     const [searchQuery, setSearchQuery] = useState('')
+    const [category, setCategory] = useState('all')
+    const [sortBy, setSortBy] = useState('date')
 
     return (
         <section>
@@ -19,9 +24,21 @@ const ExpensesPage = () => {
                 </div>
             </div>
 
-            <div className='mt-8 ml-20 mb-8 w-full max-w-md'>
-                <ExpenseSearch searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+            <div className='mt-8 ml-20 mr-20 mb-8 flex flex-col xl:flex-row gap-4 items-center justify-between'>
+                <div className='w-full xl:w-1/3'>
+                    <ExpenseSearch searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+                </div>
+                <div className='w-full xl:w-2/3 flex justify-end'>
+                    <ExpenseFilter 
+                        category={category} setCategory={setCategory}
+                        sortBy={sortBy} setSortBy={setSortBy}
+                    />
+                </div>
             </div>
+
+            <ExpenseRow />
+
+            <ExpenseTable />
         </section>
     )
 }

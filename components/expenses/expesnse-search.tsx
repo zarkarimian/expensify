@@ -14,7 +14,7 @@ const ExpenseSearch = ({ searchQuery, setSearchQuery }: ExpenseSearchProps) => {
         <div className='flex items-center w-full max-w-sm relative'>
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-                placeholder="Search by category or description..."
+                placeholder="Search expenses..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
