@@ -24,10 +24,10 @@ const ExpenseFilter = ({
     sortBy, setSortBy
 }: ExpenseFilterProps) => {
     return (
-        <div className="flex flex-col sm:flex-row gap-4 items-center w-full justify-end">
+        <div className="flex gap-4 items-center justify-end">
             {/* Category Filter */}
             <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px] bg-gray-100">
                     <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
@@ -37,7 +37,7 @@ const ExpenseFilter = ({
 
             {/* Sort By Filter */}
             <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px] bg-gray-100">
                     <SelectValue placeholder="Sort By" />
                 </SelectTrigger>
                 <SelectContent>
