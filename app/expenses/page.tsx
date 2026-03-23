@@ -38,7 +38,7 @@ const ExpensesPage = () => {
 
             <ExpenseRow />
 
-            <ExpenseTable />
+            <ExpenseTable category={category} sortBy={sortBy} />
         </section>
     )
 }

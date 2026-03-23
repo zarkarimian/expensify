@@ -22,7 +22,12 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { EXPENSE_CATEGORIES } from "@/lib/constants/categories"
 
+import { useSetAtom } from "jotai"
+import { expensesAtom } from "@/store/expenseAtom"
+
 export default function AddExpenseDialog() {
+
+    const setExpenses = useSetAtom(expensesAtom)
 
     const [amount, setAmount] = useState("")
     const [category, setCategory] = useState("")
@@ -31,16 +36,24 @@ export default function AddExpenseDialog() {
 
     function handleSubmit() {
 
+        if (!amount || !category) return
+
         const newExpense = {
-            amount,
+            id: crypto.randomUUID(),
+            amount: parseFloat(amount),
             category,
-            date,
-            description
+            date: date || new Date().toISOString().split('T')[0],
+            description,
+            createdAt: Date.now()
         }
 
-        console.log(newExpense)
+        setExpenses((prev) => [...prev, newExpense])
 
-        // later call API here
+        // Clear fields
+        setAmount("")
+        setCategory("")
+        setDate("")
+        setDescription("")
     }
 
     return (
