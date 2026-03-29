@@ -1,18 +1,17 @@
 "use client"
 
-import React from 'react'
-import { useAtomValue } from 'jotai'
-import { expensesAtom } from '@/store/expenseAtom'
+interface ExpenseRowProps {
+    filteredCount: number;
+    totalCount: number;
+    totalSpent: number;
+}
 
-const ExpenseRow = () => {
-    const expenses = useAtomValue(expensesAtom)
-    const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0)
-
+const ExpenseRow = ({ filteredCount, totalCount, totalSpent }: ExpenseRowProps) => {
     return (
         <div className="ml-20 mr-20 mt-6">
             <div className="bg-card text-card-foreground border border-border rounded-lg p-4 flex justify-between items-center">
                 <p className="text-muted-foreground text-sm">
-                    showing {expenses.length} of {expenses.length} expenses
+                    showing {filteredCount} of {totalCount} expenses
                 </p>
                 <div className="text-right">
                     <p className="text-lg font-bold">Total: ${totalSpent.toFixed(2)}</p>

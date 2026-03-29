@@ -2,15 +2,43 @@
 
 import AddExpenseDialog from '@/components/addExpense/addExpenseDialog'
 import ExpenseSearch from '@/components/expenses/expesnse-search'
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import ExpenseTable from '@/components/expenses/expense-table'
 import ExpenseRow from '@/components/expenses/expense-row'
 import ExpenseFilter from '@/components/expenses/expesne-filter'
+import { useAtomValue } from 'jotai'
+import { expensesAtom } from '@/store/expenseAtom'
 
 const ExpensesPage = () => {
     const [searchQuery, setSearchQuery] = useState('')
     const [category, setCategory] = useState('all')
     const [sortBy, setSortBy] = useState('date')
+    const expenses = useAtomValue(expensesAtom)
+
+    const filteredExpenses = useMemo(() => {
+        return expenses
+            .filter(exp => {
+                const matchesCategory = category === 'all' || exp.category === category
+                const matchesSearch = 
+                    exp.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    exp.category.toLowerCase().includes(searchQuery.toLowerCase())
+                return matchesCategory && matchesSearch
+            })
+            .sort((a, b) => {
+                if (sortBy === 'date') {
+                    const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime()
+                    if (dateDiff !== 0) return dateDiff
+                    return b.createdAt - a.createdAt
+                } else if (sortBy === 'amount') {
+                    return b.amount - a.amount
+                }
+                return 0
+            })
+    }, [expenses, searchQuery, category, sortBy])
+
+    const totalCount = expenses.length
+    const filteredCount = filteredExpenses.length
+    const totalSpent = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0)
 
     return (
         <section>
@@ -36,9 +64,13 @@ const ExpensesPage = () => {
                 </div>
             </div>
 
-            <ExpenseRow />
+            <ExpenseRow 
+                filteredCount={filteredCount} 
+                totalCount={totalCount} 
+                totalSpent={totalSpent} 
+            />
 
-            <ExpenseTable category={category} sortBy={sortBy} />
+            <ExpenseTable expenses={filteredExpenses} />
         </section>
     )
 }

@@ -1,19 +1,17 @@
 "use client"
 
 import React from 'react'
-import { useAtomValue, useSetAtom } from 'jotai'
-import { expensesAtom } from '@/store/expenseAtom'
+import { useSetAtom } from 'jotai'
 import { format } from 'date-fns'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Expense, expensesAtom } from '@/store/expenseAtom'
 
 interface ExpenseTableProps {
-    category: string;
-    sortBy: string;
+    expenses: Expense[];
 }
 
-const ExpenseTable = ({ category, sortBy }: ExpenseTableProps) => {
-    const expenses = useAtomValue(expensesAtom)
+const ExpenseTable = ({ expenses }: ExpenseTableProps) => {
     const setExpenses = useSetAtom(expensesAtom)
 
     const handleDelete = (id: string) => {
@@ -21,17 +19,6 @@ const ExpenseTable = ({ category, sortBy }: ExpenseTableProps) => {
     }
 
     const filteredExpenses = expenses
-        .filter(exp => category === 'all' || exp.category === category)
-        .sort((a, b) => {
-            if (sortBy === 'date') {
-                const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime()
-                if (dateDiff !== 0) return dateDiff
-                return b.createdAt - a.createdAt
-            } else if (sortBy === 'amount') {
-                return b.amount - a.amount
-            }
-            return 0
-        })
 
     return (
         <div className="ml-20 mr-20 mt-6">
