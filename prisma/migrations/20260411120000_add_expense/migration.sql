@@ -1,0 +1,13 @@
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Expense" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "category" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Expense_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Expense_createdAt_idx" ON "Expense"("createdAt");
