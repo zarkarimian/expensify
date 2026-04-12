@@ -21,43 +21,49 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { EXPENSE_CATEGORIES } from "@/lib/constants/categories"
-
-import { useSetAtom } from "jotai"
-import { expensesAtom } from "@/store/expenseAtom"
+import { Loader2 } from "lucide-react"
+import { useCreateExpense } from "@/src/hooks/use-expenses"
 
 export default function AddExpenseDialog() {
 
-    const setExpenses = useSetAtom(expensesAtom)
+    const createExpense = useCreateExpense()
 
+    const [open, setOpen] = useState(false)
     const [amount, setAmount] = useState("")
     const [category, setCategory] = useState("")
     const [date, setDate] = useState("")
     const [description, setDescription] = useState("")
+    const [submitError, setSubmitError] = useState<string | null>(null)
 
-    function handleSubmit() {
+    async function handleSubmit() {
 
         if (!amount || !category) return
 
-        const newExpense = {
-            id: crypto.randomUUID(),
-            amount: parseFloat(amount),
-            category,
-            date: date || new Date().toISOString().split('T')[0],
-            description,
-            createdAt: Date.now()
+        const parsed = parseFloat(amount)
+        if (Number.isNaN(parsed)) {
+            setSubmitError("Enter a valid amount")
+            return
         }
 
-        setExpenses((prev) => [...prev, newExpense])
-
-        // Clear fields
-        setAmount("")
-        setCategory("")
-        setDate("")
-        setDescription("")
+        setSubmitError(null)
+        try {
+            await createExpense.mutateAsync({
+                title: description.trim() || "Untitled expense",
+                amount: parsed,
+                category,
+            })
+            setAmount("")
+            setCategory("")
+            setDate("")
+            setDescription("")
+            setOpen(false)
+        } catch (e) {
+            setSubmitError(e instanceof Error ? e.message : "Something went wrong")
+        }
     }
 
     return (
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
 
             <DialogTrigger asChild>
                 <Button className="p-5">
@@ -90,7 +96,7 @@ export default function AddExpenseDialog() {
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Category *</label>
 
-                        <Select onValueChange={(value) => setCategory(value)}>
+                        <Select onValueChange={(value) => setCategory(value)} value={category || undefined}>
 
                             <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Select category" />
@@ -132,15 +138,26 @@ export default function AddExpenseDialog() {
                         />
                     </div>
 
+                    {submitError ? (
+                        <p className="text-sm text-destructive">{submitError}</p>
+                    ) : null}
+
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline">
+                    <Button variant="outline" type="button" onClick={() => setOpen(false)}>
                         Cancel
                     </Button>
 
-                    <Button onClick={handleSubmit}>
-                        Add Expense
+                    <Button onClick={() => void handleSubmit()} disabled={createExpense.isPending}>
+                        {createExpense.isPending ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Adding…
+                            </>
+                        ) : (
+                            "Add Expense"
+                        )}
                     </Button>
                 </DialogFooter>
 

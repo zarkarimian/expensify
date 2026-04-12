@@ -6,29 +6,32 @@ import React, { useState, useMemo } from 'react'
 import ExpenseTable from '@/components/expenses/expense-table'
 import ExpenseRow from '@/components/expenses/expense-row'
 import ExpenseFilter from '@/components/expenses/expesne-filter'
-import { useAtomValue } from 'jotai'
-import { expensesAtom } from '@/store/expenseAtom'
+import { useExpenses } from '@/src/hooks/use-expenses'
+import { Loader2 } from 'lucide-react'
 
 const ExpensesPage = () => {
     const [searchQuery, setSearchQuery] = useState('')
     const [category, setCategory] = useState('all')
     const [sortBy, setSortBy] = useState('date')
-    const expenses = useAtomValue(expensesAtom)
+    const { data: expenses = [], isPending, isError, error, refetch } = useExpenses()
+
+    const categoryOptions = useMemo(
+        () => Array.from(new Set(expenses.map((e) => e.category))).sort(),
+        [expenses],
+    )
 
     const filteredExpenses = useMemo(() => {
         return expenses
             .filter(exp => {
                 const matchesCategory = category === 'all' || exp.category === category
                 const matchesSearch = 
-                    exp.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    exp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     exp.category.toLowerCase().includes(searchQuery.toLowerCase())
                 return matchesCategory && matchesSearch
             })
             .sort((a, b) => {
                 if (sortBy === 'date') {
-                    const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime()
-                    if (dateDiff !== 0) return dateDiff
-                    return b.createdAt - a.createdAt
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
                 } else if (sortBy === 'amount') {
                     return b.amount - a.amount
                 }
@@ -39,6 +42,34 @@ const ExpensesPage = () => {
     const totalCount = expenses.length
     const filteredCount = filteredExpenses.length
     const totalSpent = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0)
+
+    if (isPending) {
+        return (
+            <section className="flex min-h-[40vh] items-center justify-center">
+                <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <Loader2 className="h-10 w-10 animate-spin" />
+                    <p>Loading expenses…</p>
+                </div>
+            </section>
+        )
+    }
+
+    if (isError) {
+        return (
+            <section className="ml-20 mt-10 space-y-4">
+                <p className="text-destructive">
+                    {error instanceof Error ? error.message : 'Failed to load expenses'}
+                </p>
+                <button
+                    type="button"
+                    className="text-sm text-muted-foreground underline"
+                    onClick={() => void refetch()}
+                >
+                    Try again
+                </button>
+            </section>
+        )
+    }
 
     return (
         <section>
@@ -60,6 +91,7 @@ const ExpensesPage = () => {
                     <ExpenseFilter
                         category={category} setCategory={setCategory}
                         sortBy={sortBy} setSortBy={setSortBy}
+                        categories={categoryOptions}
                     />
                 </div>
             </div>

@@ -1,8 +1,6 @@
 "use client"
 
 import React from 'react'
-import { useAtomValue } from 'jotai'
-import { expensesAtom } from '@/store/expenseAtom'
 import {
     Select,
     SelectContent,
@@ -16,16 +14,14 @@ interface ExpenseFilterProps {
     setCategory: (category: string) => void;
     sortBy: string;
     setSortBy: (sortBy: string) => void;
+    categories: string[];
 }
 
 const ExpenseFilter = ({
     category, setCategory,
-    sortBy, setSortBy
+    sortBy, setSortBy,
+    categories,
 }: ExpenseFilterProps) => {
-    const expenses = useAtomValue(expensesAtom)
-
-    // Get unique categories from existing expenses
-    const dynamicCategories = Array.from(new Set(expenses.map(exp => exp.category))).sort()
 
     return (
         <div className="flex gap-4 items-center justify-end">
@@ -36,7 +32,7 @@ const ExpenseFilter = ({
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    {dynamicCategories.map(cat => (
+                    {categories.map(cat => (
                         <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
                 </SelectContent>
@@ -57,4 +53,3 @@ const ExpenseFilter = ({
 }
 
 export default ExpenseFilter
-

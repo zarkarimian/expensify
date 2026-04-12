@@ -1,6 +1,11 @@
 import { Prisma } from "../../../../generated/prisma/client";
-import { prisma } from "@/src/lib/prisma";
 import { createExpenseSchema, updateExpenseSchema } from "@/src/lib/expense-schemas";
+import {
+  createExpense,
+  deleteExpense,
+  listExpenses,
+  updateExpense,
+} from "@/src/lib/expense.service";
 import { NextResponse } from "next/server";
 
 function jsonError(message: string, status: number, details?: unknown) {
@@ -11,9 +16,7 @@ function jsonError(message: string, status: number, details?: unknown) {
 
 export async function GET() {
   try {
-    const expenses = await prisma.expense.findMany({
-      orderBy: { createdAt: "desc" },
-    });
+    const expenses = await listExpenses();
     return NextResponse.json(expenses);
   } catch {
     return jsonError("Failed to fetch expenses", 500);
@@ -34,9 +37,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const expense = await prisma.expense.create({
-      data: parsed.data,
-    });
+    const expense = await createExpense(parsed.data);
     return NextResponse.json(expense, { status: 201 });
   } catch {
     return jsonError("Failed to create expense", 500);
@@ -56,13 +57,8 @@ export async function PUT(request: Request) {
     return jsonError("Validation failed", 400, parsed.error.flatten());
   }
 
-  const { id, ...updates } = parsed.data;
-
   try {
-    const expense = await prisma.expense.update({
-      where: { id },
-      data: updates,
-    });
+    const expense = await updateExpense(parsed.data);
     return NextResponse.json(expense);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
@@ -79,9 +75,7 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    await prisma.expense.delete({
-      where: { id: id.trim() },
-    });
+    await deleteExpense(id.trim());
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
