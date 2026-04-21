@@ -14,7 +14,10 @@ async function parseJsonError(res: Response): Promise<string> {
 }
 
 export async function fetchExpenses(): Promise<Expense[]> {
-  const res = await fetch("/api/expenses", { cache: "no-store" });
+  const res = await fetch("/api/expenses", {
+    cache: "no-store",
+    credentials: "include",
+  });
   if (!res.ok) {
     throw new Error(await parseJsonError(res));
   }
@@ -24,6 +27,7 @@ export async function fetchExpenses(): Promise<Expense[]> {
 export async function createExpenseApi(input: CreateExpenseInput): Promise<Expense> {
   const res = await fetch("/api/expenses", {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
@@ -36,6 +40,7 @@ export async function createExpenseApi(input: CreateExpenseInput): Promise<Expen
 export async function updateExpenseApi(input: UpdateExpenseInput): Promise<Expense> {
   const res = await fetch("/api/expenses", {
     method: "PUT",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
@@ -48,6 +53,7 @@ export async function updateExpenseApi(input: UpdateExpenseInput): Promise<Expen
 export async function deleteExpenseApi(id: string): Promise<void> {
   const res = await fetch(`/api/expenses?id=${encodeURIComponent(id)}`, {
     method: "DELETE",
+    credentials: "include",
   });
   if (res.status === 204) return;
   if (!res.ok) {

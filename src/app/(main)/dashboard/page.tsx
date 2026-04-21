@@ -8,7 +8,7 @@ const DashbordPage = () => {
         <section>
             <div className='flex justify-between'>
                 <div>
-                    <h1 className='text-3xl font-bold mt-10 ml-20 mb-2'>Dashbord</h1>
+                    <h1 className='text-3xl font-bold mt-10 ml-20 mb-2'>Dashboard</h1>
                     <p className='ml-20 text-muted-foreground'>Track and manage your expenses</p>
                 </div>
                 <div className='mr-20 mt-10'><AddExpenseDialog /></div>

@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart2,
   LayoutDashboard,
+  LogOut,
   Receipt,
   Tag,
   Wallet,
 } from "lucide-react";
 
+import type { AppShellUser } from "@/components/layout/app-shell";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -21,17 +24,37 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { authClient } from "@/src/lib/auth-client";
 
 const navItems = [
-  { href: "/dashbord", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/categories", label: "Categories", icon: Tag },
   { href: "/budget", label: "Budget", icon: Wallet },
   { href: "/reports", label: "Reports", icon: BarChart2 },
 ] as const;
 
-export function AppSidebar() {
+function initialsFromName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "U";
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return `${parts[0]![0]!}${parts[parts.length - 1]![0]!}`.toUpperCase();
+}
+
+export function AppSidebar({ user }: { user: AppShellUser }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    await authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/sign-in");
+          router.refresh();
+        },
+      },
+    });
+  }
 
   return (
     <Sidebar collapsible="icon">
@@ -39,7 +62,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/dashbord">
+              <Link href="/dashboard">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                   <Receipt className="size-4" />
                 </div>
@@ -87,16 +110,28 @@ export function AppSidebar() {
             <SidebarMenuButton size="lg" className="cursor-default">
               <Avatar className="size-8 rounded-lg">
                 <AvatarFallback className="rounded-lg bg-sidebar-accent text-sidebar-accent-foreground text-xs">
-                  EX
+                  {initialsFromName(user.name)}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Expense User</span>
+                <span className="truncate font-medium">{user.name}</span>
                 <span className="truncate text-xs text-sidebar-foreground/70">
-                  you@example.com
+                  {user.email}
                 </span>
               </div>
             </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2"
+              onClick={() => void handleSignOut()}
+            >
+              <LogOut className="size-4" />
+              Sign out
+            </Button>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

@@ -6,6 +6,7 @@ import {
   listExpenses,
   updateExpense,
 } from "@/src/lib/expense.service";
+import { auth } from "@/src/lib/auth";
 import { NextResponse } from "next/server";
 
 function jsonError(message: string, status: number, details?: unknown) {
@@ -14,7 +15,22 @@ function jsonError(message: string, status: number, details?: unknown) {
   });
 }
 
-export async function GET() {
+async function requireSession(request: Request) {
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  });
+  if (!session) {
+    return jsonError("Unauthorized", 401);
+  }
+  return session;
+}
+
+export async function GET(request: Request) {
+  const sessionOrError = await requireSession(request);
+  if (sessionOrError instanceof NextResponse) {
+    return sessionOrError;
+  }
+
   try {
     const expenses = await listExpenses();
     return NextResponse.json(expenses);
@@ -24,6 +40,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const sessionOrError = await requireSession(request);
+  if (sessionOrError instanceof NextResponse) {
+    return sessionOrError;
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -45,6 +66,11 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const sessionOrError = await requireSession(request);
+  if (sessionOrError instanceof NextResponse) {
+    return sessionOrError;
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -69,6 +95,11 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const sessionOrError = await requireSession(request);
+  if (sessionOrError instanceof NextResponse) {
+    return sessionOrError;
+  }
+
   const id = new URL(request.url).searchParams.get("id");
   if (!id?.trim()) {
     return jsonError("Query parameter id is required", 400);

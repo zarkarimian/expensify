@@ -11,11 +11,22 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { AppSidebar } from "@/components/layout/app-sidebar";
 
-export function AppShell({ children }: { children: ReactNode }) {
+export type AppShellUser = {
+  name: string;
+  email: string;
+};
+
+export function AppShell({
+  children,
+  user,
+}: {
+  children: ReactNode;
+  user: AppShellUser;
+}) {
   return (
     <TooltipProvider>
       <SidebarProvider>
-        <AppSidebar />
+        <AppSidebar user={user} />
         <SidebarInset>
           <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
             <SidebarTrigger />
