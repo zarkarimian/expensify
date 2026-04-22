@@ -1,168 +1,246 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import type { UseMutationResult } from "@tanstack/react-query"
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-    DialogTrigger
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select"
-
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { EXPENSE_CATEGORIES } from "@/lib/constants/categories"
 import { Loader2 } from "lucide-react"
+import { format } from "date-fns"
 import { useCreateExpense } from "@/src/hooks/use-expenses"
+import type { Expense, UpdateExpenseInput } from "@/src/lib/expense-types"
 
-export default function AddExpenseDialog() {
+type UpdateMutation = UseMutationResult<Expense, Error, UpdateExpenseInput>
 
-    const createExpense = useCreateExpense()
-
-    const [open, setOpen] = useState(false)
-    const [amount, setAmount] = useState("")
-    const [category, setCategory] = useState("")
-    const [date, setDate] = useState("")
-    const [description, setDescription] = useState("")
-    const [submitError, setSubmitError] = useState<string | null>(null)
-
-    async function handleSubmit() {
-
-        if (!amount || !category) return
-
-        const parsed = parseFloat(amount)
-        if (Number.isNaN(parsed)) {
-            setSubmitError("Enter a valid amount")
-            return
-        }
-
-        setSubmitError(null)
-        try {
-            await createExpense.mutateAsync({
-                title: description.trim() || "Untitled expense",
-                amount: parsed,
-                category,
-            })
-            setAmount("")
-            setCategory("")
-            setDate("")
-            setDescription("")
-            setOpen(false)
-        } catch (e) {
-            setSubmitError(e instanceof Error ? e.message : "Something went wrong")
-        }
+export type ExpenseFormDialogProps =
+  | {
+      mode: "create"
+      expense?: undefined
+      open?: boolean
+      onOpenChange?: (open: boolean) => void
+      trigger?: React.ReactNode
+    }
+  | {
+      mode: "edit"
+      expense: Expense
+      /** Use `const u = useUpdateExpense()` in the parent and pass `u` for shared pending state (e.g. row loading). */
+      updateExpense: UpdateMutation
+      open?: boolean
+      onOpenChange?: (open: boolean) => void
+      trigger?: React.ReactNode
     }
 
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
+function isEditProps(
+  props: ExpenseFormDialogProps
+): props is Extract<ExpenseFormDialogProps, { mode: "edit" }> {
+  return props.mode === "edit"
+}
 
-            <DialogTrigger asChild>
-                <Button className="p-5">
-                    + Add Expense
-                </Button>
-            </DialogTrigger>
+export function ExpenseFormDialog(props: ExpenseFormDialogProps) {
+  const { mode, open: openProp, onOpenChange, trigger } = props
 
-            <DialogContent className="sm:max-w-[500px]">
+  const createExpense = useCreateExpense()
+  const updateMutation = isEditProps(props) ? props.updateExpense : null
 
-                <DialogHeader>
-                    <DialogTitle>Add New Expense</DialogTitle>
-                </DialogHeader>
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+  const isControlled = openProp !== undefined
+  const open = isControlled ? openProp : uncontrolledOpen
 
-                <div className="space-y-4 py-4">
+  const setOpen = (next: boolean) => {
+    onOpenChange?.(next)
+    if (!isControlled) {
+      setUncontrolledOpen(next)
+    }
+  }
 
-                    {/* Amount */}
+  const [amount, setAmount] = useState("")
+  const [category, setCategory] = useState("")
+  const [date, setDate] = useState("")
+  const [description, setDescription] = useState("")
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Amount *</label>
-                        <Input
-                            type="number"
-                            placeholder="0.00"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                        />
-                    </div>
+  const expense = isEditProps(props) ? props.expense : undefined
 
-                    {/* Category */}
+  useEffect(() => {
+    if (mode !== "edit" || !expense) {
+      return
+    }
+    if (!open) {
+      return
+    }
+    setAmount(String(expense.amount))
+    setCategory(expense.category)
+    setDate(format(new Date(expense.createdAt), "yyyy-MM-dd"))
+    setDescription(expense.title)
+    setSubmitError(null)
+  }, [mode, expense, open])
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Category *</label>
+  async function handleSubmit() {
+    if (!amount || !category) {
+      return
+    }
 
-                        <Select onValueChange={(value) => setCategory(value)} value={category || undefined}>
+    const parsed = parseFloat(amount)
+    if (Number.isNaN(parsed)) {
+      setSubmitError("Enter a valid amount")
+      return
+    }
 
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
+    setSubmitError(null)
+    const title = description.trim() || "Untitled expense"
 
-                            <SelectContent>
+    try {
+      if (mode === "create") {
+        await createExpense.mutateAsync({
+          title,
+          amount: parsed,
+          category,
+        })
+        setAmount("")
+        setCategory("")
+        setDate("")
+        setDescription("")
+        setOpen(false)
+        return
+      }
 
-                                {EXPENSE_CATEGORIES.map((cat) => (
-                                    <SelectItem key={cat} value={cat}>
-                                        {cat}
-                                    </SelectItem>
-                                ))}
+      if (!expense || !updateMutation) {
+        return
+      }
 
-                            </SelectContent>
+      await updateMutation.mutateAsync({
+        id: expense.id,
+        title,
+        amount: parsed,
+        category,
+      })
+      setOpen(false)
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : "Something went wrong")
+    }
+  }
 
-                        </Select>
+  const isPending = mode === "create" ? createExpense.isPending : (updateMutation?.isPending ?? false)
 
-                    </div>
+  const defaultTrigger = (
+    <Button className="p-5" type="button">
+      + Add Expense
+    </Button>
+  )
+  const triggerNode =
+    mode === "create"
+      ? trigger !== undefined
+        ? trigger
+        : defaultTrigger
+      : trigger !== undefined
+        ? trigger
+        : null
 
-                    {/* Date */}
+  const titleText = mode === "edit" ? "Edit Expense" : "Add New Expense"
+  const primaryLabel = mode === "edit" ? "Save Changes" : "Add Expense"
+  const pendingLabel = mode === "edit" ? "Saving…" : "Adding…"
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Date</label>
-                        <Input
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                        />
-                    </div>
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      {triggerNode ? <DialogTrigger asChild>{triggerNode}</DialogTrigger> : null}
 
-                    {/* Description */}
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>{titleText}</DialogTitle>
+        </DialogHeader>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Description</label>
-                        <Textarea
-                            placeholder="Add details about this expense..."
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                        />
-                    </div>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Amount *</label>
+            <Input
+              type="number"
+              placeholder="0.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </div>
 
-                    {submitError ? (
-                        <p className="text-sm text-destructive">{submitError}</p>
-                    ) : null}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Category *</label>
+            <Select
+              onValueChange={(value) => setCategory(value)}
+              value={category || undefined}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {EXPENSE_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-                </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Date</label>
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
 
-                <DialogFooter>
-                    <Button variant="outline" type="button" onClick={() => setOpen(false)}>
-                        Cancel
-                    </Button>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Description</label>
+            <Textarea
+              placeholder="Add details about this expense..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
 
-                    <Button onClick={() => void handleSubmit()} disabled={createExpense.isPending}>
-                        {createExpense.isPending ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Adding…
-                            </>
-                        ) : (
-                            "Add Expense"
-                        )}
-                    </Button>
-                </DialogFooter>
+          {submitError ? <p className="text-sm text-destructive">{submitError}</p> : null}
+        </div>
 
-            </DialogContent>
+        <DialogFooter>
+          <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
 
-        </Dialog>
-    )
+          <Button
+            type="button"
+            onClick={() => void handleSubmit()}
+            disabled={isPending}
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {pendingLabel}
+              </>
+            ) : (
+              primaryLabel
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export default function AddExpenseDialog() {
+  return <ExpenseFormDialog mode="create" />
 }
