@@ -4,9 +4,32 @@ import React from 'react'
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns'
 import { Loader2 } from 'lucide-react'
 import { useExpenses } from '@/src/hooks/use-expenses'
+import { useAccounts } from '@/src/hooks/use-accounts'
+import { cn } from '@/lib/utils'
 
 const StateCard = () => {
-    const { data: expenses = [], isPending, isError, error, refetch } = useExpenses()
+    const {
+        data: expenses = [],
+        isPending: expensesPending,
+        isError: expensesError,
+        error: expensesErr,
+        refetch: refetchExpenses,
+    } = useExpenses()
+    const {
+        data: accounts = [],
+        isPending: accountsPending,
+        isError: accountsError,
+        error: accountsErr,
+        refetch: refetchAccounts,
+    } = useAccounts()
+
+    const isPending = expensesPending || accountsPending
+    const isError = expensesError || accountsError
+    const error = expensesErr ?? accountsErr
+    const refetch = () => {
+        void refetchExpenses()
+        void refetchAccounts()
+    }
 
     const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0)
     const transactionCount = expenses.length
@@ -22,7 +45,7 @@ const StateCard = () => {
         .reduce((sum, exp) => sum + exp.amount, 0)
 
     const uniqueCategories = new Set(expenses.map(exp => exp.category)).size
-    const averageExpense = transactionCount > 0 ? totalExpense / transactionCount : 0
+    const totalRemaining = accounts.reduce((sum, a) => sum + a.remaining, 0)
 
     if (isPending) {
         return (
@@ -43,7 +66,7 @@ const StateCard = () => {
                     <p className='text-sm text-muted-foreground mt-4'>Loading…</p>
                 </div>
                 <div className="bg-card text-card-foreground border border-border rounded-lg p-6">
-                    <h3 className="text-lg font-semibold mb-10">Average</h3>
+                    <h3 className="text-lg font-semibold mb-10">Balance</h3>
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     <p className='text-sm text-muted-foreground mt-4'>Loading…</p>
                 </div>
@@ -88,9 +111,16 @@ const StateCard = () => {
                 <p className='text-sm text-muted-foreground'>Active categories</p>
             </div>
             <div className="bg-card text-card-foreground border border-border rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-10">Average</h3>
-                <p className="text-2xl font-bold">${averageExpense.toFixed(2)}</p>
-                <p className='text-sm text-muted-foreground'>Per transaction</p>
+                <h3 className="text-lg font-semibold mb-10">Balance</h3>
+                <p
+                    className={cn(
+                        "text-2xl font-bold",
+                        totalRemaining < 0 && "text-destructive",
+                    )}
+                >
+                    ${totalRemaining.toFixed(2)}
+                </p>
+                <p className='text-sm text-muted-foreground'>In your accounts</p>
             </div>
         </div>
     )
