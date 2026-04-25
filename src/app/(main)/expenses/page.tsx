@@ -16,17 +16,27 @@ const ExpensesPage = () => {
     const { data: expenses = [], isPending, isError, error, refetch } = useExpenses()
 
     const categoryOptions = useMemo(
-        () => Array.from(new Set(expenses.map((e) => e.category))).sort(),
+        () =>
+            Array.from(
+                new Set(
+                    expenses
+                        .map((e) => e.category?.trim())
+                        .filter((c): c is string => Boolean(c)),
+                ),
+            ).sort(),
         [expenses],
     )
 
     const filteredExpenses = useMemo(() => {
         return expenses
             .filter(exp => {
-                const matchesCategory = category === 'all' || exp.category === category
-                const matchesSearch = 
-                    exp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    exp.category.toLowerCase().includes(searchQuery.toLowerCase())
+                const matchesCategory =
+                    category === 'all' || exp.category === category
+                const title = (exp.title ?? "").toLowerCase()
+                const cat = (exp.category ?? "").toLowerCase()
+                const q = searchQuery.toLowerCase()
+                const matchesSearch =
+                    title.includes(q) || cat.includes(q)
                 return matchesCategory && matchesSearch
             })
             .sort((a, b) => {

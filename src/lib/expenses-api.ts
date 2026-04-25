@@ -38,11 +38,12 @@ export async function createExpenseApi(input: CreateExpenseInput): Promise<Expen
 }
 
 export async function updateExpenseApi(input: UpdateExpenseInput): Promise<Expense> {
-  const res = await fetch("/api/expenses", {
-    method: "PUT",
+  const { id, ...body } = input;
+  const res = await fetch(`/api/expenses/${encodeURIComponent(id)}`, {
+    method: "PATCH",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     throw new Error(await parseJsonError(res));

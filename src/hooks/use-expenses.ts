@@ -10,10 +10,8 @@ import {
   updateExpenseApi,
 } from "@/src/lib/expenses-api";
 import type { CreateExpenseInput, UpdateExpenseInput } from "@/src/lib/expense-types";
-
-export const expenseKeys = {
-  all: ["expenses"] as const,
-};
+import { accountKeys, expenseKeys } from "@/src/hooks/query-keys";
+export { expenseKeys } from "@/src/hooks/query-keys";
 
 export function useExpenses() {
   return useQuery({
@@ -28,6 +26,7 @@ export function useCreateExpense() {
     mutationFn: (input: CreateExpenseInput) => createExpenseApi(input),
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: expenseKeys.all });
+      await queryClient.invalidateQueries({ queryKey: accountKeys.all });
     },
   });
 }
@@ -38,6 +37,7 @@ export function useUpdateExpense() {
     mutationFn: (input: UpdateExpenseInput) => updateExpenseApi(input),
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: expenseKeys.all });
+      await queryClient.invalidateQueries({ queryKey: accountKeys.all });
     },
   });
 }
@@ -48,6 +48,7 @@ export function useDeleteExpense() {
     mutationFn: (id: string) => deleteExpenseApi(id),
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: expenseKeys.all });
+      await queryClient.invalidateQueries({ queryKey: accountKeys.all });
     },
   });
 }

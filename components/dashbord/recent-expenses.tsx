@@ -45,7 +45,7 @@ const RecentExpenses = () => {
                             <div key={expense.id} className="flex justify-between border-b border-border pb-3 last:border-0 last:pb-0">
                                 <div>
                                     <div className="flex items-center gap-2">
-                                        <p className="bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs font-medium">{expense.category}</p>
+                                        <p className="bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs font-medium">{expense.category ?? '—'}</p>
                                         <p className="text-sm text-muted-foreground">{format(new Date(expense.createdAt), 'MMM dd, yyyy')}</p>
                                     </div>
                                     <p className="text-sm text-muted-foreground">{expense.title || 'No description'}</p>

@@ -20,11 +20,35 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import { EXPENSE_CATEGORIES } from "@/lib/constants/categories"
-import { Loader2 } from "lucide-react"
+import { Banknote, Bitcoin, CreditCard, Loader2, Wallet } from "lucide-react"
 import { format } from "date-fns"
 import { useCreateExpense } from "@/src/hooks/use-expenses"
-import type { Expense, UpdateExpenseInput } from "@/src/lib/expense-types"
+import { useAccounts, useCreateAccount } from "@/src/hooks/use-accounts"
+import type { AccountType, CreateAccountInput, Expense, UpdateExpenseInput } from "@/src/lib/expense-types"
+
+const ADD_ACCOUNT_VALUE = "__add_new__"
+
+const ACCOUNT_TYPE_OPTIONS: { value: AccountType; label: string }[] = [
+  { value: "cash", label: "Cash" },
+  { value: "bank", label: "Bank / card" },
+  { value: "crypto", label: "Crypto" },
+  { value: "other", label: "Other" },
+]
+
+function accountTypeIcon(t: string) {
+  switch (t) {
+    case "cash":
+      return Banknote
+    case "bank":
+      return CreditCard
+    case "crypto":
+      return Bitcoin
+    default:
+      return Wallet
+  }
+}
 
 type UpdateMutation = UseMutationResult<Expense, Error, UpdateExpenseInput>
 
@@ -39,7 +63,6 @@ export type ExpenseFormDialogProps =
   | {
       mode: "edit"
       expense: Expense
-      /** Use `const u = useUpdateExpense()` in the parent and pass `u` for shared pending state (e.g. row loading). */
       updateExpense: UpdateMutation
       open?: boolean
       onOpenChange?: (open: boolean) => void
@@ -57,6 +80,8 @@ export function ExpenseFormDialog(props: ExpenseFormDialogProps) {
 
   const createExpense = useCreateExpense()
   const updateMutation = isEditProps(props) ? props.updateExpense : null
+  const { data: accounts = [], isLoading: accountsLoading } = useAccounts()
+  const createAccount = useCreateAccount()
 
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
   const isControlled = openProp !== undefined
@@ -71,9 +96,16 @@ export function ExpenseFormDialog(props: ExpenseFormDialogProps) {
 
   const [amount, setAmount] = useState("")
   const [category, setCategory] = useState("")
+  const [accountId, setAccountId] = useState("")
   const [date, setDate] = useState("")
   const [description, setDescription] = useState("")
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [addAccountOpen, setAddAccountOpen] = useState(false)
+  const [newAccountName, setNewAccountName] = useState("")
+  const [newAccountType, setNewAccountType] = useState<AccountType>("cash")
+  const [newAccountCurrency, setNewAccountCurrency] = useState("USD")
+  const [newAccountBalance, setNewAccountBalance] = useState("0")
+  const [newAccountError, setNewAccountError] = useState<string | null>(null)
 
   const expense = isEditProps(props) ? props.expense : undefined
 
@@ -85,14 +117,51 @@ export function ExpenseFormDialog(props: ExpenseFormDialogProps) {
       return
     }
     setAmount(String(expense.amount))
-    setCategory(expense.category)
+    setCategory(expense.category ?? "")
+    setAccountId(expense.accountId)
     setDate(format(new Date(expense.createdAt), "yyyy-MM-dd"))
-    setDescription(expense.title)
+    setDescription(expense.title ?? "")
     setSubmitError(null)
   }, [mode, expense, open])
 
+  async function handleAddAccount() {
+    const name = newAccountName.trim()
+    if (!name) {
+      setNewAccountError("Name is required")
+      return
+    }
+    const balParsed = parseFloat(newAccountBalance)
+    if (Number.isNaN(balParsed) || !Number.isFinite(balParsed)) {
+      setNewAccountError("Starting balance must be a valid number")
+      return
+    }
+    const cur = newAccountCurrency.trim().toUpperCase() || "USD"
+    setNewAccountError(null)
+    try {
+      const input: CreateAccountInput = {
+        name,
+        type: newAccountType,
+        currency: cur,
+        balance: balParsed,
+      }
+      const created = await createAccount.mutateAsync(input)
+      setAccountId(created.id)
+      setNewAccountName("")
+      setNewAccountType("cash")
+      setNewAccountCurrency("USD")
+      setNewAccountBalance("0")
+      setAddAccountOpen(false)
+    } catch (e) {
+      setNewAccountError(e instanceof Error ? e.message : "Could not add account")
+    }
+  }
+
   async function handleSubmit() {
     if (!amount || !category) {
+      return
+    }
+    if (!accountId) {
+      setSubmitError("Select an account")
       return
     }
 
@@ -111,9 +180,11 @@ export function ExpenseFormDialog(props: ExpenseFormDialogProps) {
           title,
           amount: parsed,
           category,
+          accountId,
         })
         setAmount("")
         setCategory("")
+        setAccountId("")
         setDate("")
         setDescription("")
         setOpen(false)
@@ -129,6 +200,7 @@ export function ExpenseFormDialog(props: ExpenseFormDialogProps) {
         title,
         amount: parsed,
         category,
+        accountId,
       })
       setOpen(false)
     } catch (e) {
@@ -157,87 +229,212 @@ export function ExpenseFormDialog(props: ExpenseFormDialogProps) {
   const pendingLabel = mode === "edit" ? "Saving…" : "Adding…"
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      {triggerNode ? <DialogTrigger asChild>{triggerNode}</DialogTrigger> : null}
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        {triggerNode ? <DialogTrigger asChild>{triggerNode}</DialogTrigger> : null}
 
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>{titleText}</DialogTitle>
-        </DialogHeader>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{titleText}</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Amount *</label>
-            <Input
-              type="number"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Amount *</label>
+              <Input
+                type="number"
+                placeholder="0.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Category *</label>
-            <Select
-              onValueChange={(value) => setCategory(value)}
-              value={category || undefined}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {EXPENSE_CATEGORIES.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Category *</label>
+              <Select
+                onValueChange={(value) => setCategory(value)}
+                value={category || undefined}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXPENSE_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Account *</label>
+              <Select
+                value={accountId || undefined}
+                onValueChange={(v) => {
+                  if (v === ADD_ACCOUNT_VALUE) {
+                    setAddAccountOpen(true)
+                    return
+                  }
+                  setAccountId(v)
+                }}
+                disabled={accountsLoading}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue
+                    placeholder={
+                      accountsLoading ? "Loading…" : "Select account"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((a) => {
+                    const Icon = accountTypeIcon(a.type)
+                    return (
+                      <SelectItem key={a.id} value={a.id}>
+                        <span className="flex items-center gap-2">
+                          <Icon className="h-4 w-4 shrink-0 opacity-80" />
+                          <span>
+                            {a.name}{" "}
+                            <span className="text-muted-foreground text-xs">
+                              ({a.currency})
+                            </span>
+                          </span>
+                        </span>
+                      </SelectItem>
+                    )
+                  })}
+                  <SelectItem value={ADD_ACCOUNT_VALUE} className="text-primary">
+                    + Add new account
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Date</label>
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                placeholder="Add details about this expense..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            {submitError ? <p className="text-sm text-destructive">{submitError}</p> : null}
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Date</label>
-            <Input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+
+            <Button
+              type="button"
+              onClick={() => void handleSubmit()}
+              disabled={isPending}
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {pendingLabel}
+                </>
+              ) : (
+                primaryLabel
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addAccountOpen} onOpenChange={setAddAccountOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>New account</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="acc-name">Name</Label>
+              <Input
+                id="acc-name"
+                value={newAccountName}
+                onChange={(e) => setNewAccountName(e.target.value)}
+                placeholder="e.g. Main checking, Cash, USDT"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select
+                value={newAccountType}
+                onValueChange={(v) => setNewAccountType(v as AccountType)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ACCOUNT_TYPE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="acc-currency">Currency</Label>
+              <Input
+                id="acc-currency"
+                value={newAccountCurrency}
+                onChange={(e) => setNewAccountCurrency(e.target.value)}
+                placeholder="USD"
+                maxLength={12}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="acc-balance">Starting balance *</Label>
+              <Input
+                id="acc-balance"
+                type="number"
+                value={newAccountBalance}
+                onChange={(e) => setNewAccountBalance(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+            {newAccountError ? (
+              <p className="text-sm text-destructive">{newAccountError}</p>
+            ) : null}
           </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Description</label>
-            <Textarea
-              placeholder="Add details about this expense..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-
-          {submitError ? <p className="text-sm text-destructive">{submitError}</p> : null}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" type="button" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-
-          <Button
-            type="button"
-            onClick={() => void handleSubmit()}
-            disabled={isPending}
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {pendingLabel}
-              </>
-            ) : (
-              primaryLabel
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={() => setAddAccountOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleAddAccount()}
+              disabled={createAccount.isPending}
+            >
+              {createAccount.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adding…
+                </>
+              ) : (
+                "Add"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 

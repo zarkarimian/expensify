@@ -67,10 +67,10 @@ const ExpenseTable = ({ expenses }: ExpenseTableProps) => {
                                     <tr key={expense.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                                         <td className="py-3 px-4">
                                             <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs font-medium">
-                                                {expense.category}
+                                                {expense.category?.trim() || '—'}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-4 text-md">{expense.title || '-'}</td>
+                                        <td className="py-3 px-4 text-md">{expense.title?.trim() || '-'}</td>
                                         <td className="py-3 px-4 text-sm text-muted-foreground">{format(new Date(expense.createdAt), 'MMM dd, yyyy')}</td>
                                         <td className="py-3 px-4 text-right font-bold">${expense.amount.toFixed(2)}</td>
                                         <td className="py-3 px-4 text-right">

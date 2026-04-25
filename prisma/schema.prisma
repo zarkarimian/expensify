@@ -12,26 +12,72 @@ datasource db {
   provider = "postgresql"
 }
 
-model Expense {
+/// User money accounts (wallets, banks, etc.). Named FinanceAccount in Prisma to avoid clashing
+/// with the Better Auth `Account` model (OAuth provider link, table `account`).
+model FinanceAccount {
   id        String   @id @default(cuid())
-  title     String
-  amount    Float
-  category  String
+  userId    String
+  name      String
+  type      String // cash | bank | crypto | other
+  currency  String   @default("USD")
+  balance   Float    @default(0) // starting balance set by user
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses  Expense[]
+  transfersFrom Transfer[] @relation("TransferFrom")
+  transfersTo   Transfer[] @relation("TransferTo")
+
+  @@index([userId])
+  @@map("finance_accounts")
+}
+
+model Expense {
+  id        String         @id @default(cuid())
+  userId    String
+  title     String?
+  amount    Float
+  category  String?
+  accountId String
+  createdAt DateTime       @default(now())
+  account   FinanceAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
+  @@index([userId])
+  @@index([accountId])
+}
+
+model Transfer {
+  id            String   @id @default(cuid())
+  userId        String
+  fromAccountId String
+  toAccountId   String
+  amount        Float
+  note          String?
+  createdAt     DateTime @default(now())
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromAccount   FinanceAccount @relation("TransferFrom", fields: [fromAccountId], references: [id], onDelete: Restrict)
+  toAccount     FinanceAccount @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([fromAccountId])
+  @@index([toAccountId])
+  @@map("transfers")
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+  id               String           @id
+  name             String
+  email            String
+  emailVerified    Boolean          @default(false)
+  image            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  sessions         Session[]
+  accounts         Account[] // Better Auth: OAuth provider accounts
+  expenses         Expense[]
+  financeAccounts  FinanceAccount[]
+  transfers        Transfer[]
 
   @@unique([email])
   @@map("user")
@@ -53,6 +99,7 @@ model Session {
   @@map("session")
 }
 
+/// Better Auth: OAuth / credential provider account (table `account`)
 model Account {
   id                    String    @id
   accountId             String
