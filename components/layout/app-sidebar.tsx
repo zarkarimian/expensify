@@ -31,7 +31,7 @@ const navItems = [
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/categories", label: "Categories", icon: Tag },
   { href: "/budget", label: "Budget", icon: Wallet },
-  { href: "/reports", label: "Reports", icon: BarChart2 },
+  { href: "/analytics", label: "Analytics", icon: BarChart2 },
 ] as const;
 
 function initialsFromName(name: string) {

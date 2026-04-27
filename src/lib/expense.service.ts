@@ -5,6 +5,15 @@ import { financeAccountBelongsToUser } from "@/src/lib/finance-account.service";
 
 const accountSelect = { select: { id: true, name: true, type: true, currency: true } as const };
 
+function parseDateOnlyToLocalDate(dateOnly: string) {
+  // Interpret YYYY-MM-DD as a local date (midnight local time).
+  const d = new Date(`${dateOnly}T00:00:00`);
+  if (Number.isNaN(d.getTime())) {
+    throw new Error("Invalid date");
+  }
+  return d;
+}
+
 export function listExpensesForUser(userId: string) {
   return prisma.expense.findMany({
     where: { userId },
@@ -21,6 +30,7 @@ function normalizeCreate(data: CreateExpenseInput) {
     amount: data.amount,
     category: data.category?.trim() || "General",
     accountId: data.accountId,
+    createdAt: data.date ? parseDateOnlyToLocalDate(data.date) : undefined,
   };
 }
 
@@ -40,6 +50,7 @@ export async function createExpense(userId: string, data: CreateExpenseInput) {
       category: normalized.category,
       userId,
       accountId: normalized.accountId,
+      ...(normalized.createdAt ? { createdAt: normalized.createdAt } : {}),
     },
     include: {
       account: accountSelect,
@@ -53,6 +64,7 @@ function buildPatchData(patch: PatchExpenseInput) {
     amount?: number;
     category?: string | null;
     accountId?: string;
+    createdAt?: Date;
   } = {};
   if (patch.title !== undefined) {
     d.title = patch.title;
@@ -65,6 +77,9 @@ function buildPatchData(patch: PatchExpenseInput) {
   }
   if (patch.accountId !== undefined) {
     d.accountId = patch.accountId;
+  }
+  if (patch.date !== undefined) {
+    d.createdAt = parseDateOnlyToLocalDate(patch.date);
   }
   return d;
 }

@@ -10,3 +10,7 @@ export const accountKeys = {
 export const transferKeys = {
   all: ["transfers"] as const,
 };
+
+export const analyticsKeys = {
+  byPeriod: (period: string) => ["analytics", period] as const,
+};

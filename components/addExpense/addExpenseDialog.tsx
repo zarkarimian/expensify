@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import type { UseMutationResult } from "@tanstack/react-query"
 import {
   Dialog,
@@ -87,7 +87,38 @@ export function ExpenseFormDialog(props: ExpenseFormDialogProps) {
   const isControlled = openProp !== undefined
   const open = isControlled ? openProp : uncontrolledOpen
 
+  const expense = isEditProps(props) ? props.expense : undefined
+
+  const todayDateOnly = () => format(new Date(), "yyyy-MM-dd")
+
+  const resetForCreate = () => {
+    setAmount("")
+    setCategory("")
+    setAccountId("")
+    setDate(todayDateOnly())
+    setDescription("")
+    setSubmitError(null)
+  }
+
+  const populateForEdit = (nextExpense: Expense) => {
+    setAmount(String(nextExpense.amount))
+    setCategory(nextExpense.category ?? "")
+    setAccountId(nextExpense.accountId)
+    setDate(format(new Date(nextExpense.createdAt), "yyyy-MM-dd"))
+    setDescription(nextExpense.title ?? "")
+    setSubmitError(null)
+  }
+
   const setOpen = (next: boolean) => {
+    // Initialize state when the dialog opens (avoids setState-in-effect lint).
+    if (next && !open) {
+      if (mode === "edit" && expense) {
+        populateForEdit(expense)
+      } else {
+        resetForCreate()
+      }
+    }
+
     onOpenChange?.(next)
     if (!isControlled) {
       setUncontrolledOpen(next)
@@ -106,23 +137,6 @@ export function ExpenseFormDialog(props: ExpenseFormDialogProps) {
   const [newAccountCurrency, setNewAccountCurrency] = useState("USD")
   const [newAccountBalance, setNewAccountBalance] = useState("0")
   const [newAccountError, setNewAccountError] = useState<string | null>(null)
-
-  const expense = isEditProps(props) ? props.expense : undefined
-
-  useEffect(() => {
-    if (mode !== "edit" || !expense) {
-      return
-    }
-    if (!open) {
-      return
-    }
-    setAmount(String(expense.amount))
-    setCategory(expense.category ?? "")
-    setAccountId(expense.accountId)
-    setDate(format(new Date(expense.createdAt), "yyyy-MM-dd"))
-    setDescription(expense.title ?? "")
-    setSubmitError(null)
-  }, [mode, expense, open])
 
   async function handleAddAccount() {
     const name = newAccountName.trim()
@@ -181,12 +195,9 @@ export function ExpenseFormDialog(props: ExpenseFormDialogProps) {
           amount: parsed,
           category,
           accountId,
+          date: date || todayDateOnly(),
         })
-        setAmount("")
-        setCategory("")
-        setAccountId("")
-        setDate("")
-        setDescription("")
+        resetForCreate()
         setOpen(false)
         return
       }
@@ -201,6 +212,7 @@ export function ExpenseFormDialog(props: ExpenseFormDialogProps) {
         amount: parsed,
         category,
         accountId,
+        date: date || todayDateOnly(),
       })
       setOpen(false)
     } catch (e) {
