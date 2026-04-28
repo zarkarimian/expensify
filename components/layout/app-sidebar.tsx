@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LogOut,
   Receipt,
+  Send,
   Tag,
   Wallet,
 } from "lucide-react";
@@ -18,6 +19,9 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -32,6 +36,10 @@ const navItems = [
   { href: "/categories", label: "Categories", icon: Tag },
   { href: "/budget", label: "Budget", icon: Wallet },
   { href: "/analytics", label: "Analytics", icon: BarChart2 },
+] as const;
+
+const integrationItems = [
+  { href: "/integrations/telegram", label: "Telegram Bot", icon: Send },
 ] as const;
 
 function initialsFromName(name: string) {
@@ -79,29 +87,62 @@ export function AppSidebar({ user }: { user: AppShellUser }) {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarMenu>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive =
-              pathname === item.href ||
-              pathname.startsWith(`${item.href}/`);
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`);
 
-            return (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive}
-                  tooltip={item.label}
-                >
-                  <Link href={item.href}>
-                    <Icon />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.label}
+                    >
+                      <Link href={item.href}>
+                        <Icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Integrations</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {integrationItems.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`);
+
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.label}
+                    >
+                      <Link href={item.href}>
+                        <Icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>
