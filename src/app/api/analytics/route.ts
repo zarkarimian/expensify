@@ -152,11 +152,13 @@ export async function GET(request: Request) {
       const category = safeCategory(expense.category);
       categoryTotals.set(category, (categoryTotals.get(category) ?? 0) + expense.amount);
 
-      const accountKey = `${expense.account.name}::${expense.account.type}`;
+      const accountName = expense.account?.name ?? "Unassigned";
+      const accountType = expense.account?.type ?? "other";
+      const accountKey = `${accountName}::${accountType}`;
       const current = accountTotals.get(accountKey);
       accountTotals.set(accountKey, {
-        accountName: expense.account.name,
-        accountType: expense.account.type,
+        accountName,
+        accountType,
         total: (current?.total ?? 0) + expense.amount,
       });
     }
@@ -199,7 +201,7 @@ export async function GET(request: Request) {
         title: expense.title?.trim() || "Untitled expense",
         amount: expense.amount,
         category: safeCategory(expense.category),
-        accountName: expense.account.name,
+        accountName: expense.account?.name ?? "Unassigned",
         date: expense.createdAt.toISOString(),
       }));
 

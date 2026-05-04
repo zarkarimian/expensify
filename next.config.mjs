@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  allowedDevOrigins: ["portside-reclining-anger.ngrok-free.dev"],
   async redirects() {
     return [
       {

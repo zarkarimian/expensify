@@ -5,6 +5,10 @@ import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/src/lib/prisma";
 
 export const auth = betterAuth({
+  trustedOrigins: [
+    "https://portside-reclining-anger.ngrok-free.dev",
+    "http://localhost:3000",
+  ],
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
   database: prismaAdapter(prisma, {

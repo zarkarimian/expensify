@@ -37,9 +37,12 @@ model Expense {
   title     String?
   amount    Float
   category  String?
-  accountId String
+  currency  String         @default("USD")
+  merchantName String?
+  receiptDate DateTime?
+  accountId String?
   createdAt DateTime       @default(now())
-  account   FinanceAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  account   FinanceAccount? @relation(fields: [accountId], references: [id], onDelete: Restrict)
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
